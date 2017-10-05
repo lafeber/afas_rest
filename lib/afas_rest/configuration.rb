@@ -1,4 +1,4 @@
-module DocusignRest
+module AfasRest
   module Configuration
     VALID_CONNECTION_KEYS  = [:endpoint, :api_version, :user_agent, :method].freeze
     VALID_OPTIONS_KEYS     = [:access_token, :username, :password, :integrator_key, :account_id, :format, :ca_file].freeze
@@ -18,7 +18,7 @@ module DocusignRest
     DEFAULT_FORMAT         = :json
 
     # Build accessor methods for every config options so we can do this, for example:
-    #   DocusignRest.format = :xml
+    #   AfasRest.format = :xml
     attr_accessor *VALID_CONFIG_KEYS
 
     # Make sure we have the default values set when we get 'extended'

@@ -1,7 +1,7 @@
 require 'openssl'
 require 'open-uri'
 
-module DocusignRest
+module AfasRest
 
   class Client
     def initialize(options={})

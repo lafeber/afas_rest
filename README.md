@@ -1,16 +1,12 @@
 # AfasRest
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/afas_rest`. To experiment with that code, run `bin/console` for an interactive prompt.
-
-TODO: Delete this and the text above, and describe your gem
+This 'wrapper gem' hooks a Ruby app (currently only tested with Rails) up to the [Afas](http://www.afas.com/) REST API ([docs](https://docs.afas.com/esign/), [API explorer](https://apiexplorer.afas.com/#/esign/restapi)) to allow for embedded signing.
 
 ## Installation
 
 Add this line to your application's Gemfile:
 
-```ruby
-gem 'afas_rest'
-```
+    gem 'afas_rest'
 
 And then execute:
 
@@ -20,24 +16,81 @@ Or install it yourself as:
 
     $ gem install afas_rest
 
+## Configuration
+
+There is a bundled rake task that will prompt you for your Afas credentials including:
+
+  * Username
+  * Password
+  * Integrator Key
+
+and create the `config/initializers/afas_rest.rb` file in your Rails app for you. If the file was unable to be created, the rake task will output the config block for you to manually add to an initializer.
+
+**Note** please run the below task and ensure your initializer is in place before attempting to use any of the methods in this gem. Without the initializer this gem will not be able to properly authenticate you to the Afas REST API.
+
+    $ bundle exec rake afas_rest:generate_config
+
+outputs:
+
+    Please do the following:
+    ------------------------
+    1) Login or register for an account at https://demo.afas.net
+         ...or their production url if applicable
+    2) From the Avatar menu in the upper right hand corner of the page, click "Go to Admin"
+    3) From the left sidebar menu, click "API and Keys"
+    4) Request a new 'Integrator Key' via the web interface
+        * You will use this key in one of the next steps to retrieve your 'accountId'
+
+    Please enter your Afas username: someone@gmail.com
+    Please enter your Afas password: p@ssw0rd1
+    Please enter your Afas integrator_key: KEYS-19ddd1cc-cb56-4ca6-87ec-38db47d14b32
+
+    The following block of code was added to config/initializers/afas_rest.rb
+
+    require 'afas_rest'
+
+    AfasRest.configure do |config|
+      config.profit_username = 'someone@gmail.com'
+      config.password        = 'p@ssw0rd1'
+      config.api_key         = 'KEYS-19ddd1cc-cb56-4ca6-87ec-38db47d14b32'
+      config.environment_key = '123456'
+      #config.endpoint       = 'https://www.afas.net/restapi'
+      #config.api_version    = 'v2'
+    end
+
+
+### Config Options
+
+There are several other configuration options available but the two most likely to be needed are:
+
+```ruby
+config.endpoint       = 'https://afas.net/restapi'
+config.api_version    = 'v2'
+```
+
+The above options allow you to change the endpoint (to be able to hit the production Afas API, for instance) and to modify the API version you wish to use.
+
 ## Usage
 
-TODO: Write usage instructions here
+The afas\_rest gem makes creating multipart POST (aka file upload) requests to the Afas REST API dead simple. It's built on top of `Net::HTTP` and utilizes the [multipart-post](https://github.com/nicksieger/multipart-post) gem to assist with formatting the multipart requests. The Afas REST API requires that all files be embedded as JSON directly in the request body (not the body\_stream like multipart-post does by default) so the afas\_rest gem takes care of [setting that up for you](https://github.com/lafeber/afas_rest/blob/master/lib/afas_rest/client.rb#L397).
 
-## Development
+### Examples
 
-After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
+* Unless noted otherwise, these requests return the JSON parsed body of the response so you can index the returned hash directly. For example: `template_response["templateId"]`.
 
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+#### Situations
 
-## Contributing
+**In the context of a Rails app**
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/afas_rest. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.
+This is how most people are using this gem - they've got a Rails app that's doing things with the Docusign API.  In that case, these examples assume you have already set up a afas account, have run the `afas_rest:generate_config` rake task, and have the configure block properly setup in an initializer with your username, password, integrator\_key, and account\_id.
 
-## License
+**In the context of this gem as a standalone project**
 
-The gem is available as open source under the terms of the [MIT License](http://opensource.org/licenses/MIT).
+Ideally this gem will be independent of Rails.  If that's your situation, there won't be a Rails initializer so your code will need to load the API authentication credentials.  You will want to do something like:
 
-## Code of Conduct
-
-Everyone interacting in the AfasRest project’s codebases, issue trackers, chat rooms and mailing lists is expected to follow the [code of conduct](https://github.com/[USERNAME]/afas_rest/blob/master/CODE_OF_CONDUCT.md).
+```ruby
+load 'test/afas_login_config.rb'
+client = AfasRest::Client.new
+client.get_account_id
+document_envelope_response = client.create_envelope_from_document( # etc etc
+```
